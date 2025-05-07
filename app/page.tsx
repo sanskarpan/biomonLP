@@ -159,7 +159,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-2">
                 <AnimatedButton variant="gradient" size="lg" icon={<ArrowRight className="h-4 w-4" />}>
-                  Join the Biomon Beta – Get 3 Months Free
+                  Join the Biomon – Get 3 Months Free
                 </AnimatedButton>
                 <AnimatedButton variant="outline" size="lg" icon={<Eye className="h-4 w-4" />}>
                   See the Dashboard
@@ -190,7 +190,7 @@ export default function Home() {
               <AnimatedCard className="overflow-hidden rounded-xl border bg-background shadow-xl" borderGradient>
                 <div className="absolute inset-0 bg-gradient-to-br from-biomon-red/20 via-biomon-pink/20 to-biomon-orange/20 opacity-50"></div>
                 <Image
-                  src="/placeholder.svg?height=600&width=800"
+                  src="/heart.png"
                   alt="Biomon Dashboard"
                   width={800}
                   height={600}
@@ -319,7 +319,7 @@ export default function Home() {
             <div className="relative animate-on-scroll">
               <div className="relative overflow-hidden rounded-xl border bg-background shadow-xl">
                 <Image
-                  src="/placeholder.svg?height=600&width=800"
+                  src="/heart.png"
                   alt="Biomon Dashboard Preview"
                   width={800}
                   height={600}

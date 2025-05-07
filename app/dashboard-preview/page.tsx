@@ -1,649 +1,835 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-} from "recharts"
-import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Activity,
   AlertCircle,
-  ArrowUpRight,
-  Bell,
-  Calendar,
   ChevronDown,
-  Home,
-  TestTubeIcon as Lab,
-  MessageSquare,
+  Clock,
+  Heart,
+  Info,
   Moon,
   MoreHorizontal,
-  Settings,
-  Smartphone,
-  User,
+  Plus,
+  Sun,
+  TrendingUp,
+  Zap,
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import Image from "next/image"
+
+// UI Components
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+// Custom Components
 import { HealthModel } from "@/components/3d/health-model"
 import { HealthRadar } from "@/components/visualizations/health-radar"
-import { AnimatedCard } from "@/components/ui/animated-card"
-import { AnimatedCounter } from "@/components/animations/animated-counter"
+import { BodyCompositionChart } from "@/components/dashboard/body-composition-chart"
+import { SleepQualityChart } from "@/components/dashboard/sleep-quality-chart"
+import { NutrientIntakeChart } from "@/components/dashboard/nutrient-intake-chart"
+import { ActivityHeatmap } from "@/components/dashboard/activity-heatmap"
+import { MetricCard } from "@/components/dashboard/metric-card"
+import { AlertCard } from "@/components/dashboard/alert-card"
+import { HealthScoreGauge } from "@/components/dashboard/health-score-gauge"
+import { RecoveryTrendChart } from "@/components/dashboard/recovery-trend-chart"
+import { VitaminLevelsChart } from "@/components/dashboard/vitamin-levels-chart"
+import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { DashboardHeader } from "@/components/dashboard/header"
+import { DashboardShell } from "@/components/dashboard/shell"
 
-// Mock data for charts
-const heartRateData = [
-  { time: "00:00", rate: 62 },
-  { time: "02:00", rate: 58 },
-  { time: "04:00", rate: 55 },
-  { time: "06:00", rate: 61 },
-  { time: "08:00", rate: 75 },
-  { time: "10:00", rate: 72 },
-  { time: "12:00", rate: 78 },
-  { time: "14:00", rate: 74 },
-  { time: "16:00", rate: 82 },
-  { time: "18:00", rate: 76 },
-  { time: "20:00", rate: 70 },
-  { time: "22:00", rate: 65 },
-]
+// Type definitions for data imports
+type TrendType = "up" | "down" | "neutral";
+type AlertType = "warning" | "info" | "success" | "error";
+type VitaminStatus = "optimal" | "low" | "high" | "deficient";
 
-const sleepData = [
-  { day: "Mon", deep: 1.2, rem: 2.1, light: 4.5 },
-  { day: "Tue", deep: 1.5, rem: 1.8, light: 4.2 },
-  { day: "Wed", deep: 1.1, rem: 2.3, light: 4.0 },
-  { day: "Thu", deep: 1.7, rem: 2.0, light: 4.3 },
-  { day: "Fri", deep: 1.3, rem: 1.9, light: 4.1 },
-  { day: "Sat", deep: 1.8, rem: 2.2, light: 4.7 },
-  { day: "Sun", deep: 1.6, rem: 2.4, light: 4.4 },
-]
+interface HealthScoreData {
+  current: number;
+  change: number;
+  trend: TrendType;
+  history: Array<{ date: string; score: number }>;
+}
 
-const glucoseData = [
-  { day: "Mon", glucose: 95 },
-  { day: "Tue", glucose: 98 },
-  { day: "Wed", glucose: 102 },
-  { day: "Thu", glucose: 105 },
-  { day: "Fri", glucose: 110 },
-  { day: "Sat", glucose: 115 },
-  { day: "Sun", glucose: 118 },
-]
+interface RecoveryData {
+  current: number;
+  change: number;
+  trend: TrendType;
+  history: Array<{ date: string; recovery: number; hrv: number }>;
+}
 
-const recoveryData = [
-  { date: "05/01", recovery: 85, hrv: 65 },
-  { date: "05/02", recovery: 82, hrv: 62 },
-  { date: "05/03", recovery: 78, hrv: 58 },
-  { date: "05/04", recovery: 75, hrv: 55 },
-  { date: "05/05", recovery: 80, hrv: 60 },
-  { date: "05/06", recovery: 88, hrv: 68 },
-  { date: "05/07", recovery: 92, hrv: 72 },
-]
+interface SleepData {
+  current: number;
+  change: number;
+  trend: TrendType;
+  history: Array<{ day: string; deep: number; rem: number; light: number }>;
+}
 
-// Alert data
-const alerts = [
-  {
-    id: 1,
-    title: "Rising Blood Glucose",
-    description: "Your fasting glucose has been trending upward for the past 7 days.",
-    severity: "warning",
-    time: "2 hours ago",
-  },
-  {
-    id: 2,
-    title: "Low Vitamin D",
-    description: "Your latest lab results show vitamin D levels below optimal range.",
-    severity: "alert",
-    time: "1 day ago",
-  },
-  {
-    id: 3,
-    title: "Improved Recovery",
-    description: "Your recovery scores have improved by 15% this week.",
-    severity: "success",
-    time: "3 days ago",
-  },
-]
+interface VitaminData {
+  current: number;
+  change: number;
+  trend: TrendType;
+  alert: boolean;
+  levels: Array<{
+    name: string;
+    value: number;
+    status: VitaminStatus;
+    reference: string;
+  }>;
+}
+
+interface AlertData {
+  id: number;
+  title: string;
+  description: string;
+  type: AlertType;
+  time: string;
+  action: string;
+}
+
+// Mock data with proper types
+import {
+  healthScoreData as importedHealthScoreData,
+  recoveryData as importedRecoveryData,
+  sleepData as importedSleepData,
+  vitaminData as importedVitaminData,
+  alertsData as importedAlertsData,
+  nutrientData,
+  activityData,
+  bodyCompositionData,
+  radarData,
+} from "@/data/dashboard-data"
+
+// Cast imported data to properly typed variables
+const healthScoreData = importedHealthScoreData as HealthScoreData;
+const recoveryData = importedRecoveryData as RecoveryData;
+const sleepData = importedSleepData as SleepData;
+const vitaminData = importedVitaminData as VitaminData;
+const alertsData = importedAlertsData as AlertData[];
 
 export default function DashboardPreview() {
+  const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [dateRange, setDateRange] = useState("Last 7 Days")
+
+  // Fix for hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar className="border-r">
-          <SidebarHeader className="border-b px-4 py-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xl font-bold bg-gradient-to-r from-biomon-red to-biomon-orange bg-clip-text text-transparent">
-                Biomon
-              </span>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton isActive={activeTab === "overview"} onClick={() => setActiveTab("overview")}>
-                      <Home className="h-4 w-4" />
-                      <span>Overview</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setActiveTab("insights")}>
-                      <Activity className="h-4 w-4" />
-                      <span>Insights</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setActiveTab("labs")}>
-                      <Lab className="h-4 w-4" />
-                      <span>Labs</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setActiveTab("wearables")}>
-                      <Smartphone className="h-4 w-4" />
-                      <span>Wearables</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => setActiveTab("coaching")}>
-                      <MessageSquare className="h-4 w-4" />
-                      <span>Coaching</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel>Account</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <User className="h-4 w-4" />
-                      <span>Profile</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton>
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarFooter className="border-t p-4">
-            <div className="flex items-center gap-2">
-              <div className="rounded-full bg-muted h-8 w-8 flex items-center justify-center">
-                <span className="text-sm font-bold">JD</span>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-medium truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground truncate">john@example.com</p>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">More options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Log out</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </SidebarFooter>
-          <SidebarRail />
-        </Sidebar>
-        <div className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">Dashboard</h1>
-              <Badge variant="outline" className="ml-2">
-                Preview
-              </Badge>
-            </div>
-            <div className="ml-auto flex items-center gap-4">
-              <Button variant="outline" size="icon">
-                <Bell className="h-4 w-4" />
-                <span className="sr-only">Notifications</span>
-              </Button>
-              <Button variant="outline" size="icon">
-                <Calendar className="h-4 w-4" />
-                <span className="sr-only">Calendar</span>
-              </Button>
-              <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
-                <span className="text-sm">Last 7 Days</span>
-                <ChevronDown className="h-4 w-4" />
-              </div>
-            </div>
-          </header>
-          <main className="p-6">
-            <div className="grid gap-6">
-              {/* Health Score Cards */}
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <AnimatedCard borderGradient>
-                    <CardHeader className="p-4 pb-0">
-                      <CardTitle className="text-sm font-medium">Health Score</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-3xl font-bold text-biomon-pink">
-                            <AnimatedCounter value={87} />
-                          </p>
-                          <p className="text-xs text-muted-foreground">out of 100</p>
-                        </div>
-                        <div className="flex items-center text-sm text-green-500">
-                          <ArrowUpRight className="mr-1 h-4 w-4" />
-                          <span>+3%</span>
-                        </div>
-                      </div>
-                      <Progress value={87} className="mt-4 h-2" />
-                    </CardContent>
-                  </AnimatedCard>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-0">
-                      <CardTitle className="text-sm font-medium">Recovery Index</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-3xl font-bold text-biomon-orange">92%</p>
-                          <p className="text-xs text-muted-foreground">Optimal</p>
-                        </div>
-                        <div className="flex items-center text-sm text-green-500">
-                          <ArrowUpRight className="mr-1 h-4 w-4" />
-                          <span>+5%</span>
-                        </div>
-                      </div>
-                      <Progress value={92} className="mt-4 h-2" />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-0">
-                      <CardTitle className="text-sm font-medium">Sleep Quality</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-3xl font-bold">8.2h</p>
-                          <p className="text-xs text-muted-foreground">Good</p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Moon className="h-4 w-4 text-indigo-400" />
-                          <Moon className="h-4 w-4 text-indigo-400" />
-                          <Moon className="h-4 w-4 text-indigo-400" />
-                          <Moon className="h-4 w-4 text-muted" />
-                        </div>
-                      </div>
-                      <Progress value={75} className="mt-4 h-2" />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.3 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-0">
-                      <CardTitle className="text-sm font-medium">Vitamin D</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-3xl font-bold text-red-500">28 ng/mL</p>
-                          <p className="text-xs text-muted-foreground">Deficient</p>
-                        </div>
-                        <div className="flex items-center text-sm text-red-500">
-                          <ArrowUpRight className="mr-1 h-4 w-4 rotate-180" />
-                          <span>-12%</span>
-                        </div>
-                      </div>
-                      <Progress value={40} className="mt-4 h-2" />
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Sidebar */}
+      <DashboardSidebar open={sidebarOpen} setOpen={setSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-              {/* 3D Health Model */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.9 }}
-              >
-                <Card>
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle>Health Visualization</CardTitle>
-                    <CardDescription>Interactive 3D model of your cardiovascular health</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="flex flex-col justify-center">
-                        <HealthModel />
-                      </div>
-                      <div>
-                        <HealthRadar
-                          data={[
-                            { name: "Cardiovascular", value: 85, description: "Heart health and circulation" },
-                            { name: "Respiratory", value: 78, description: "Lung function and oxygen efficiency" },
-                            { name: "Metabolic", value: 65, description: "Energy production and utilization" },
-                            { name: "Immune", value: 92, description: "Immune system strength and resilience" },
-                            { name: "Cognitive", value: 88, description: "Brain function and mental clarity" },
-                            { name: "Muscular", value: 75, description: "Strength, endurance and recovery" },
-                          ]}
-                          width={300}
-                          height={300}
-                          className="w-full h-full"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+      {/* Main Content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <DashboardHeader
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          dateRange={dateRange}
+          setDateRange={setDateRange}
+        />
 
-              {/* Alerts Section */}
+        <main className="flex-1 overflow-auto p-0">
+          <DashboardShell>
+            <AnimatePresence mode="wait">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-6 p-6"
               >
-                <Card>
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Alerts & Recommendations</CardTitle>
-                      <Button variant="ghost" size="sm" className="h-8 gap-1">
-                        <span>View All</span>
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
+                {activeTab === "overview" && (
+                  <>
+                    {/* Top Stats Row */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      <MetricCard
+                        title="Health Score"
+                        value={healthScoreData.current}
+                        change={healthScoreData.change}
+                        trend={healthScoreData.trend as "up" | "down" | "neutral"}
+                        icon={<Heart className="h-4 w-4" />}
+                        color="red"
+                      />
+                      <MetricCard
+                        title="Recovery Index"
+                        value={recoveryData.current}
+                        suffix="%"
+                        change={recoveryData.change}
+                        trend={recoveryData.trend as "up" | "down" | "neutral"}
+                        icon={<Zap className="h-4 w-4" />}
+                        color="orange"
+                      />
+                      <MetricCard
+                        title="Sleep Quality"
+                        value={sleepData.current}
+                        suffix="h"
+                        change={sleepData.change}
+                        trend={sleepData.trend as "up" | "down" | "neutral"}
+                        icon={<Moon className="h-4 w-4" />}
+                        color="blue"
+                      />
+                      <MetricCard
+                        title="Vitamin D"
+                        value={vitaminData.current}
+                        suffix=" ng/mL"
+                        change={vitaminData.change}
+                        trend={vitaminData.trend as "up" | "down" | "neutral"}
+                        icon={<Sun className="h-4 w-4" />}
+                        color="yellow"
+                        alert={vitaminData.alert}
+                      />
                     </div>
-                    <CardDescription>Proactive notifications based on your health data</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="space-y-4">
-                      {alerts.map((alert) => (
-                        <Alert
-                          key={alert.id}
-                          variant={
-                            alert.severity === "warning"
-                              ? "default"
-                              : alert.severity === "alert"
-                                ? "destructive"
-                                : "default"
-                          }
-                          className="bg-muted/50"
-                        >
-                          <AlertCircle className="h-4 w-4" />
-                          <div className="flex-1">
-                            <AlertTitle className="flex items-center justify-between">
-                              <span>{alert.title}</span>
-                              <span className="text-xs text-muted-foreground">{alert.time}</span>
-                            </AlertTitle>
-                            <AlertDescription className="mt-1">{alert.description}</AlertDescription>
+
+                    {/* Main Content Grid */}
+                    <div className="grid gap-6 md:grid-cols-6 lg:grid-cols-12">
+                      {/* Health Score Gauge - 4 cols */}
+                      <Card className="md:col-span-3 lg:col-span-4">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Health Score</CardTitle>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                <DropdownMenuItem>Set Goals</DropdownMenuItem>
+                                <DropdownMenuItem>Export Data</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                        </Alert>
-                      ))}
+                          <CardDescription>Your overall health assessment</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center justify-center py-4">
+                            <HealthScoreGauge score={healthScoreData.current} />
+                          </div>
+                          <div className="mt-2 grid grid-cols-3 gap-4 text-center">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Physical</p>
+                              <p className="text-sm font-medium">92/100</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Mental</p>
+                              <p className="text-sm font-medium">85/100</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Metabolic</p>
+                              <p className="text-sm font-medium">78/100</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Alerts - 4 cols */}
+                      <Card className="md:col-span-3 lg:col-span-4">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Alerts & Insights</CardTitle>
+                            <Badge variant="outline" className="gap-1">
+                              <AlertCircle className="h-3 w-3 text-biomon-red" />
+                              <span>{alertsData.length} New</span>
+                            </Badge>
+                          </div>
+                          <CardDescription>Personalized health notifications</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <ScrollArea className="h-[280px]">
+                            <div className="space-y-1 p-4">
+                              {alertsData.map((alert, index) => (
+                                <AlertCard key={index} alert={{...alert, type: alert.type as "info" | "warning" | "error" | "success"}} />
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </CardContent>
+                        <CardFooter className="border-t bg-muted/50 px-4 py-2">
+                          <Button variant="ghost" size="sm" className="w-full justify-between">
+                            <span>View All Insights</span>
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </CardFooter>
+                      </Card>
+
+                      {/* 3D Health Model - 4 cols */}
+                      <Card className="md:col-span-6 lg:col-span-4">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Body Composition</CardTitle>
+                            <Tabs defaultValue="model" className="h-8">
+                              <TabsList className="h-8 w-auto">
+                                <TabsTrigger value="model" className="h-7 text-xs">
+                                  3D Model
+                                </TabsTrigger>
+                                <TabsTrigger value="chart" className="h-7 text-xs">
+                                  Chart
+                                </TabsTrigger>
+                              </TabsList>
+                            </Tabs>
+                          </div>
+                          <CardDescription>Interactive visualization of your body metrics</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Tabs defaultValue="model" className="h-full">
+                            <TabsContent value="model" className="mt-0 h-[280px]">
+                              <div className="flex h-full items-center justify-center">
+                                <HealthModel />
+                              </div>
+                            </TabsContent>
+                            <TabsContent value="chart" className="mt-0 h-[280px]">
+                              <div className="flex h-full items-center justify-center">
+                                <BodyCompositionChart data={bodyCompositionData} />
+                              </div>
+                            </TabsContent>
+                          </Tabs>
+                        </CardContent>
+                      </Card>
+
+                      {/* Recovery Trend - 6 cols */}
+                      <Card className="md:col-span-6 lg:col-span-6">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Recovery Trend</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className="gap-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              >
+                                <TrendingUp className="h-3 w-3" />
+                                <span>+5%</span>
+                              </Badge>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <CardDescription>Recovery score and HRV correlation</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <RecoveryTrendChart data={recoveryData.history} />
+                        </CardContent>
+                      </Card>
+
+                      {/* Vitamin Levels - 6 cols */}
+                      <Card className="md:col-span-6 lg:col-span-6">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Vitamin & Mineral Levels</CardTitle>
+                            <Button variant="outline" size="sm" className="h-8 gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span className="text-xs">Last Test: 7 days ago</span>
+                            </Button>
+                          </div>
+                          <CardDescription>Based on your latest blood work</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <VitaminLevelsChart data={vitaminData.levels.map(level => ({
+                            ...level,
+                            status: level.status as "deficient" | "optimal" | "low" | "high"
+                          }))} />
+                        </CardContent>
+                      </Card>
+
+                      {/* Sleep Quality - 6 cols */}
+                      <Card className="md:col-span-6 lg:col-span-6">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Sleep Analysis</CardTitle>
+                            <Tabs defaultValue="weekly" className="h-8">
+                              <TabsList className="h-8 w-auto">
+                                <TabsTrigger value="weekly" className="h-7 text-xs">
+                                  Weekly
+                                </TabsTrigger>
+                                <TabsTrigger value="monthly" className="h-7 text-xs">
+                                  Monthly
+                                </TabsTrigger>
+                              </TabsList>
+                            </Tabs>
+                          </div>
+                          <CardDescription>Sleep stages and quality metrics</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <SleepQualityChart data={sleepData.history} />
+                        </CardContent>
+                      </Card>
+
+                      {/* Nutrient Intake - 6 cols */}
+                      <Card className="md:col-span-6 lg:col-span-6">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Nutrient Intake</CardTitle>
+                            <Button variant="outline" size="sm" className="h-8 gap-1">
+                              <Plus className="h-3 w-3" />
+                              <span className="text-xs">Log Meal</span>
+                            </Button>
+                          </div>
+                          <CardDescription>Macronutrient and calorie tracking</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <NutrientIntakeChart data={nutrientData} />
+                        </CardContent>
+                      </Card>
+
+                      {/* Activity Heatmap - 6 cols */}
+                      <Card className="md:col-span-6 lg:col-span-6">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Activity Patterns</CardTitle>
+                            <Badge variant="outline" className="gap-1">
+                              <Activity className="h-3 w-3 text-biomon-orange" />
+                              <span>Active</span>
+                            </Badge>
+                          </div>
+                          <CardDescription>Your movement patterns throughout the week</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ActivityHeatmap data={activityData} />
+                        </CardContent>
+                      </Card>
+
+                      {/* Health Radar - 6 cols */}
+                      <Card className="md:col-span-6 lg:col-span-6">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base font-medium">Health Dimensions</CardTitle>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Info className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs text-xs">
+                                    This radar chart shows your performance across key health dimensions. Higher values
+                                    indicate better performance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <CardDescription>Multi-dimensional health assessment</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex h-[250px] items-center justify-center">
+                            <HealthRadar data={radarData} width={300} height={250} />
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                  </CardContent>
-                </Card>
+                  </>
+                )}
+
+                {activeTab === "insights" && (
+                  <div className="grid gap-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold tracking-tight">Health Insights</h2>
+                      <Button>Generate New Insights</Button>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {/* Placeholder for insights content */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Sleep Optimization</CardTitle>
+                          <CardDescription>Based on your recent sleep patterns</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p>
+                            Your sleep efficiency has decreased by 12% in the last week. Consider these recommendations:
+                          </p>
+                          <ul className="mt-4 list-inside list-disc space-y-2">
+                            <li>Maintain a consistent sleep schedule</li>
+                            <li>Reduce screen time 1 hour before bed</li>
+                            <li>Keep your bedroom temperature between 65-68°F</li>
+                          </ul>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">
+                            View Detailed Analysis
+                          </Button>
+                        </CardFooter>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Nutrition Insights</CardTitle>
+                          <CardDescription>Dietary patterns and recommendations</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p>
+                            Your protein intake is consistently below target. This may impact muscle recovery and energy
+                            levels.
+                          </p>
+                          <ul className="mt-4 list-inside list-disc space-y-2">
+                            <li>Aim for 0.8-1g of protein per pound of body weight</li>
+                            <li>Consider adding more lean protein sources</li>
+                            <li>Distribute protein intake throughout the day</li>
+                          </ul>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">
+                            View Meal Suggestions
+                          </Button>
+                        </CardFooter>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Recovery Patterns</CardTitle>
+                          <CardDescription>Training and recovery balance</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p>
+                            Your recovery metrics show signs of accumulated fatigue. Consider adjusting your training
+                            schedule.
+                          </p>
+                          <ul className="mt-4 list-inside list-disc space-y-2">
+                            <li>Reduce high-intensity training by 20% next week</li>
+                            <li>Increase focus on mobility and flexibility</li>
+                            <li>Consider adding an additional rest day</li>
+                          </ul>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">
+                            View Recovery Plan
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "labs" &&
+                  (
+                    <div className="grid gap-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold tracking-tight">Lab Results</h2>
+                      <Button>Upload New Results</Button>
+                    </div>
+                    <div className="grid gap-6">
+                      {/* Placeholder for labs content */}
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle>Recent Lab Tests</CardTitle>
+                            <Badge>Last Updated: 7 days ago</Badge>
+                          </div>
+                          <CardDescription>Track and analyze your lab test results over time</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-3 gap-4 rounded-lg border p-4">
+                              <div>
+                                <h4 className="text-sm font-medium">Vitamin D</h4>
+                                <p className="text-2xl font-bold text-red-500">28 ng/mL</p>
+                                <p className="text-xs text-muted-foreground">Reference: 30-100 ng/mL</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Vitamin B12</h4>
+                                <p className="text-2xl font-bold text-green-500">780 pg/mL</p>
+                                <p className="text-xs text-muted-foreground">Reference: 200-900 pg/mL</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Iron</h4>
+                                <p className="text-2xl font-bold text-yellow-500">65 μg/dL</p>
+                                <p className="text-xs text-muted-foreground">Reference: 60-170 μg/dL</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4 rounded-lg border p-4">
+                              <div>
+                                <h4 className="text-sm font-medium">Glucose (Fasting)</h4>
+                                <p className="text-2xl font-bold text-yellow-500">105 mg/dL</p>
+                                <p className="text-xs text-muted-foreground">Reference: 70-99 mg/dL</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">Total Cholesterol</h4>
+                                <p className="text-2xl font-bold text-green-500">175 mg/dL</p>
+                                <p className="text-xs text-muted-foreground">Reference: &lt;200 mg/dL</p>
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-medium">HDL Cholesterol</h4>
+                                <p className="text-2xl font-bold text-green-500">62 mg/dL</p>
+                                <p className="text-xs text-muted-foreground">Reference: &gt;40 mg/dL</p>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">View Complete Lab History</Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </div>
+                  )}
+
+                {activeTab === "wearables" && (
+                  <div className="grid gap-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold tracking-tight">Connected Devices</h2>
+                      <Button>Connect New Device</Button>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {/* Placeholder for wearables content */}
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src="/placeholder.svg?height=40&width=40"
+                              alt="Apple Watch"
+                              width={40}
+                              height={40}
+                              className="rounded-full"
+                            />
+                            <div>
+                              <CardTitle>Apple Watch</CardTitle>
+                              <CardDescription>Last synced: 2 hours ago</CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Heart Rate</span>
+                              <span className="font-medium">68 bpm</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Steps</span>
+                              <span className="font-medium">8,742</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Active Calories</span>
+                              <span className="font-medium">342 kcal</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-between">
+                          <Button variant="outline" size="sm">
+                            Sync Now
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            Settings
+                          </Button>
+                        </CardFooter>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src="/placeholder.svg?height=40&width=40"
+                              alt="Oura Ring"
+                              width={40}
+                              height={40}
+                              className="rounded-full"
+                            />
+                            <div>
+                              <CardTitle>Oura Ring</CardTitle>
+                              <CardDescription>Last synced: 6 hours ago</CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Sleep Score</span>
+                              <span className="font-medium">87/100</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Readiness</span>
+                              <span className="font-medium">92/100</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">HRV</span>
+                              <span className="font-medium">68 ms</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-between">
+                          <Button variant="outline" size="sm">
+                            Sync Now
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            Settings
+                          </Button>
+                        </CardFooter>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src="/placeholder.svg?height=40&width=40"
+                              alt="Withings Scale"
+                              width={40}
+                              height={40}
+                              className="rounded-full"
+                            />
+                            <div>
+                              <CardTitle>Withings Scale</CardTitle>
+                              <CardDescription>Last synced: 2 days ago</CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Weight</span>
+                              <span className="font-medium">172.4 lbs</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Body Fat</span>
+                              <span className="font-medium">18.2%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">Muscle Mass</span>
+                              <span className="font-medium">134.6 lbs</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-between">
+                          <Button variant="outline" size="sm">
+                            Sync Now
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            Settings
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "coaching" && (
+                  <div className="grid gap-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold tracking-tight">Coaching & Support</h2>
+                      <Button>Schedule Session</Button>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {/* Placeholder for coaching content */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Your Coach</CardTitle>
+                          <CardDescription>Personal health advisor</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-col items-center text-center">
+                            <Avatar className="h-20 w-20">
+                              <AvatarImage src="/placeholder.svg?height=80&width=80" alt="Coach" />
+                              <AvatarFallback>CN</AvatarFallback>
+                            </Avatar>
+                            <h3 className="mt-4 text-lg font-medium">Dr. Sarah Chen</h3>
+                            <p className="text-sm text-muted-foreground">Nutrition & Recovery Specialist</p>
+                            <div className="mt-4 flex gap-2">
+                              <Button variant="outline" size="sm">
+                                Message
+                              </Button>
+                              <Button size="sm">Book Session</Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Upcoming Sessions</CardTitle>
+                          <CardDescription>Your scheduled coaching calls</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="rounded-lg border p-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-medium">Recovery Strategy Review</h4>
+                                  <p className="text-sm text-muted-foreground">With Dr. Sarah Chen</p>
+                                </div>
+                                <Badge>Tomorrow</Badge>
+                              </div>
+                              <p className="mt-2 text-sm">10:00 AM - 10:45 AM</p>
+                            </div>
+
+                            <div className="rounded-lg border p-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-medium">Nutrition Plan Update</h4>
+                                  <p className="text-sm text-muted-foreground">With Michael Rodriguez</p>
+                                </div>
+                                <Badge variant="outline">Next Week</Badge>
+                              </div>
+                              <p className="mt-2 text-sm">Wednesday, 2:30 PM</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">
+                            View All Sessions
+                          </Button>
+                        </CardFooter>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Health Goals</CardTitle>
+                          <CardDescription>Track your progress</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <div className="mb-1 flex items-center justify-between">
+                                <span className="text-sm font-medium">Improve Sleep Quality</span>
+                                <span className="text-sm text-muted-foreground">75%</span>
+                              </div>
+                              <Progress value={75} className="h-2" />
+                            </div>
+
+                            <div>
+                              <div className="mb-1 flex items-center justify-between">
+                                <span className="text-sm font-medium">Increase Vitamin D Levels</span>
+                                <span className="text-sm text-muted-foreground">40%</span>
+                              </div>
+                              <Progress value={40} className="h-2" />
+                            </div>
+
+                            <div>
+                              <div className="mb-1 flex items-center justify-between">
+                                <span className="text-sm font-medium">Reduce Stress Levels</span>
+                                <span className="text-sm text-muted-foreground">60%</span>
+                              </div>
+                              <Progress value={60} className="h-2" />
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button variant="outline" className="w-full">
+                            Set New Goal
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </div>
+                )}
               </motion.div>
-
-              {/* Charts Section */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.5 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle>Heart Rate (24h)</CardTitle>
-                      <CardDescription>Average: 70 bpm</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <ChartContainer
-                        config={{
-                          rate: {
-                            label: "Heart Rate",
-                            color: "hsl(var(--chart-1))",
-                          },
-                        }}
-                        className="h-[200px]"
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={heartRateData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="time" />
-                            <YAxis />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Line
-                              type="monotone"
-                              dataKey="rate"
-                              stroke="var(--color-rate)"
-                              strokeWidth={2}
-                              dot={false}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.6 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle>Sleep Analysis</CardTitle>
-                      <CardDescription>Weekly sleep composition</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <ChartContainer
-                        config={{
-                          deep: {
-                            label: "Deep Sleep",
-                            color: "hsl(var(--chart-3))",
-                          },
-                          rem: {
-                            label: "REM",
-                            color: "hsl(var(--chart-2))",
-                          },
-                          light: {
-                            label: "Light Sleep",
-                            color: "hsl(var(--chart-4))",
-                          },
-                        }}
-                        className="h-[200px]"
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={sleepData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="day" />
-                            <YAxis />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Legend />
-                            <Bar dataKey="deep" stackId="a" fill="var(--color-deep)" />
-                            <Bar dataKey="rem" stackId="a" fill="var(--color-rem)" />
-                            <Bar dataKey="light" stackId="a" fill="var(--color-light)" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.7 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle>Blood Glucose Trend</CardTitle>
-                      <CardDescription>
-                        <Badge variant="destructive" className="mr-2">
-                          Alert
-                        </Badge>
-                        Trending upward
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <ChartContainer
-                        config={{
-                          glucose: {
-                            label: "Glucose (mg/dL)",
-                            color: "hsl(var(--chart-1))",
-                          },
-                        }}
-                        className="h-[200px]"
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={glucoseData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                            <defs>
-                              <linearGradient id="colorGlucose" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--color-glucose)" stopOpacity={0.8} />
-                                <stop offset="95%" stopColor="var(--color-glucose)" stopOpacity={0.1} />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="day" />
-                            <YAxis domain={[90, 120]} />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Area
-                              type="monotone"
-                              dataKey="glucose"
-                              stroke="var(--color-glucose)"
-                              fillOpacity={1}
-                              fill="url(#colorGlucose)"
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.8 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle>Recovery & HRV Correlation</CardTitle>
-                      <CardDescription>Last 7 days</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <ChartContainer
-                        config={{
-                          recovery: {
-                            label: "Recovery %",
-                            color: "hsl(var(--chart-2))",
-                          },
-                          hrv: {
-                            label: "HRV (ms)",
-                            color: "hsl(var(--chart-4))",
-                          },
-                        }}
-                        className="h-[200px]"
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={recoveryData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis yAxisId="left" orientation="left" domain={[50, 100]} />
-                            <YAxis yAxisId="right" orientation="right" domain={[40, 80]} />
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Legend />
-                            <Line
-                              yAxisId="left"
-                              type="monotone"
-                              dataKey="recovery"
-                              stroke="var(--color-recovery)"
-                              strokeWidth={2}
-                            />
-                            <Line
-                              yAxisId="right"
-                              type="monotone"
-                              dataKey="hrv"
-                              stroke="var(--color-hrv)"
-                              strokeWidth={2}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-            </div>
-          </main>
-        </div>
+            </AnimatePresence>
+          </DashboardShell>
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   )
 }

@@ -154,3 +154,112 @@
 .animate-on-scroll.is-visible {
   @apply opacity-100;
 }
+
+/* Dashboard specific styles */
+.dashboard-card {
+  @apply transition-all duration-300 hover:shadow-md;
+}
+
+.dashboard-card-header {
+  @apply p-4 pb-2;
+}
+
+.dashboard-card-content {
+  @apply p-4 pt-0;
+}
+
+.dashboard-metric {
+  @apply flex items-center justify-between;
+}
+
+.dashboard-metric-value {
+  @apply text-2xl font-bold;
+}
+
+.dashboard-metric-label {
+  @apply text-xs text-muted-foreground;
+}
+
+.dashboard-trend-up {
+  @apply text-green-500;
+}
+
+.dashboard-trend-down {
+  @apply text-red-500;
+}
+
+.dashboard-alert {
+  @apply rounded-lg p-3 transition-colors hover:bg-muted/50;
+}
+
+.dashboard-alert-warning {
+  @apply bg-yellow-500/10;
+}
+
+.dashboard-alert-info {
+  @apply bg-blue-500/10;
+}
+
+.dashboard-alert-success {
+  @apply bg-green-500/10;
+}
+
+.dashboard-alert-error {
+  @apply bg-red-500/10;
+}
+
+.dashboard-grid {
+  @apply grid gap-6;
+}
+
+.dashboard-grid-cols-1 {
+  @apply grid-cols-1;
+}
+
+.dashboard-grid-cols-2 {
+  @apply md:grid-cols-2;
+}
+
+.dashboard-grid-cols-3 {
+  @apply lg:grid-cols-3;
+}
+
+.dashboard-grid-cols-4 {
+  @apply xl:grid-cols-4;
+}
+
+.dashboard-tab {
+  @apply h-8 text-xs;
+}
+
+.dashboard-tab-content {
+  @apply mt-0;
+}
+
+.dashboard-chart {
+  @apply h-[250px] w-full;
+}
+
+.dashboard-sidebar {
+  @apply fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-background md:relative md:z-0;
+}
+
+.dashboard-sidebar-collapsed {
+  @apply w-0;
+}
+
+.dashboard-sidebar-expanded {
+  @apply w-64;
+}
+
+.dashboard-header {
+  @apply sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6;
+}
+
+.dashboard-main {
+  @apply flex-1 overflow-auto p-0;
+}
+
+.dashboard-shell {
+  @apply container mx-auto max-w-7xl;
+}
